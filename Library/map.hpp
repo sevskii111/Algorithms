@@ -3,19 +3,24 @@
 
 template <typename Key, typename Value>
 class Node {
+private:
+	typedef std::shared_ptr<Node<Key, Value>> Node_ptr;
 public:
 	Key key;
 	Value value;
 	size_t height;
-	std::shared_ptr<Node<Key, Value>> left;
-	std::shared_ptr<Node<Key, Value>> right;
+	Node_ptr left;
+	Node_ptr right;
 	Node(Key key, Value value);
+	const int8_t getBFactor(bool forceHeightFix);
 	const int8_t getBFactor();
 	void fixHeight();
+	static size_t getNodeHeight(Node_ptr node);
 };
 
-template <typename Key, typename Value>
-static size_t getNodeHeight(std::shared_ptr<Node<Key, Value>> node) {
+template<typename Key, typename Value>
+inline size_t Node<Key, Value>::getNodeHeight(Node_ptr node)
+{
 	return node ? node->height : 0;
 }
 
@@ -29,38 +34,49 @@ Node<Key, Value>::Node(Key key, Value value) {
 template<typename Key, typename Value>
 void Node<Key, Value>::fixHeight()
 {
-	height = fmax(getNodeHeight<Key, Value>(left), getNodeHeight<Key, Value>(right)) + 1;
+	height = fmax(getNodeHeight(left), getNodeHeight(right)) + 1;
 }
 
+template<typename Key, typename Value>
+const int8_t Node<Key, Value>::getBFactor(bool forceHeightFix)
+{
+	if (forceHeightFix) {
+		fixHeight();
+	}
+	return (getNodeHeight(right) - getNodeHeight(left));
+}
 
 template<typename Key, typename Value>
 const int8_t Node<Key, Value>::getBFactor()
 {
-	return (getNodeHeight<Key, Value>(right) - getNodeHeight<Key, Value>(left));
+	return (getNodeHeight(right) - getNodeHeight(left));
 }
 
 
 template <typename Key, typename Value>
 class AVLTree {
 private:
-	std::shared_ptr<Node<Key, Value>> root;
-	static std::shared_ptr<Node<Key, Value>> appendTo(std::shared_ptr<Node<Key, Value>> node, Key key, Value value);
-	static std::shared_ptr<Node<Key, Value>> rotateLeft(std::shared_ptr<Node<Key, Value>> node);
-	static std::shared_ptr<Node<Key, Value>> rotateRight(std::shared_ptr<Node<Key, Value>> node);
-	static std::shared_ptr<Node<Key, Value>> balance(std::shared_ptr<Node<Key, Value>> node);
-	static std::shared_ptr<Node<Key, Value>> findMin(std::shared_ptr<Node<Key, Value>> node);
-	static std::shared_ptr<Node<Key, Value>> removeMin(std::shared_ptr<Node<Key, Value>> node);
-	static std::shared_ptr<Node<Key, Value>> remove(std::shared_ptr<Node<Key, Value>> node, Key key);
-	static Value find(std::shared_ptr<Node<Key, Value>> node, Key key);
+	typedef std::shared_ptr<Node<Key, Value>> Node_ptr;
+	Node_ptr root;
+	static Node_ptr appendTo(Node_ptr node, Key key, Value value);
+	static Node_ptr rotateLeft(Node_ptr node);
+	static Node_ptr rotateRight(Node_ptr node);
+	static Node_ptr balance(Node_ptr node);
+	static Node_ptr findMin(Node_ptr node);
+	static Node_ptr removeMin(Node_ptr node);
+	static Node_ptr remove(Node_ptr node, Key key);
+	static Value find(Node_ptr node, Key key);
+	static bool isBalanced(Node_ptr node);
 public:
 	void insert(Key key, Value value);
 	void remove(Key key);
 	Value find(Key key);
+	bool isBalanced();
 };
 
 
 template<typename Key, typename Value>
-std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::appendTo(std::shared_ptr<Node<Key, Value>> node, Key key, Value value)
+typename AVLTree<Key, Value>::Node_ptr AVLTree<Key, Value>::appendTo(Node_ptr node, Key key, Value value)
 {
 	if (!node) {
 		return std::make_shared<Node<Key, Value>>(key, value);
@@ -79,9 +95,9 @@ std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::appendTo(std::shared_ptr<
 }
 
 template<typename Key, typename Value>
-std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::rotateLeft(std::shared_ptr<Node<Key, Value>> node)
+typename AVLTree<Key, Value>::Node_ptr AVLTree<Key, Value>::rotateLeft(Node_ptr node)
 {
-	std::shared_ptr<Node<Key, Value>> q = node->right;
+	Node_ptr q = node->right;
 	node->right = q->left;
 	q->left = node;
 	node->fixHeight();
@@ -90,9 +106,9 @@ std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::rotateLeft(std::shared_pt
 }
 
 template<typename Key, typename Value>
-std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::rotateRight(std::shared_ptr<Node<Key, Value>> node)
+typename AVLTree<Key, Value>::Node_ptr AVLTree<Key, Value>::rotateRight(Node_ptr node)
 {
-	std::shared_ptr<Node<Key, Value>> q = node->left;
+	Node_ptr q = node->left;
 	node->left = q->right;
 	q->right = node;
 	node->fixHeight();
@@ -101,7 +117,7 @@ std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::rotateRight(std::shared_p
 }
 
 template<typename Key, typename Value>
-std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::balance(std::shared_ptr<Node<Key, Value>> node)
+typename AVLTree<Key, Value>::Node_ptr AVLTree<Key, Value>::balance(Node_ptr node)
 {
 	node->fixHeight();
 	int16_t BFactor = node->getBFactor();
@@ -121,13 +137,13 @@ std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::balance(std::shared_ptr<N
 }
 
 template<typename Key, typename Value>
-std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::findMin(std::shared_ptr<Node<Key, Value>> node)
+typename AVLTree<Key, Value>::Node_ptr AVLTree<Key, Value>::findMin(Node_ptr node)
 {
 	return node->left ? findMin(node->left) : node;
 }
 
 template<typename Key, typename Value>
-std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::removeMin(std::shared_ptr<Node<Key, Value>> node)
+typename AVLTree<Key, Value>::Node_ptr AVLTree<Key, Value>::removeMin(Node_ptr node)
 {
 	if (!node->left) {
 		return node->right;
@@ -137,7 +153,7 @@ std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::removeMin(std::shared_ptr
 }
 
 template<typename Key, typename Value>
-std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::remove(std::shared_ptr<Node<Key, Value>> node, Key key)
+typename AVLTree<Key, Value>::Node_ptr AVLTree<Key, Value>::remove(Node_ptr node, Key key)
 {
 	if (!node) {
 		return 0;
@@ -150,10 +166,10 @@ std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::remove(std::shared_ptr<No
 	}
 	else
 	{
-		std::shared_ptr<Node<Key, Value>> l = node->left;
-		std::shared_ptr<Node<Key, Value>> r = node->right;
+		Node_ptr l = node->left;
+		Node_ptr r = node->right;
 		if (!r) return l;
-		std::shared_ptr<Node<Key, Value>> min = findMin(r);
+		Node_ptr min = findMin(r);
 		min->right = removeMin(r);
 		min->left = l;
 		return balance(min);
@@ -163,7 +179,7 @@ std::shared_ptr<Node<Key, Value>> AVLTree<Key, Value>::remove(std::shared_ptr<No
 }
 
 template<typename Key, typename Value>
-Value AVLTree<Key, Value>::find(std::shared_ptr<Node<Key, Value>> node, Key key)
+Value AVLTree<Key, Value>::find(Node_ptr node, Key key)
 {
 	if (!node) {
 		return Value();
@@ -177,6 +193,17 @@ Value AVLTree<Key, Value>::find(std::shared_ptr<Node<Key, Value>> node, Key key)
 	else {
 		return find(node->right, key);
 	}
+}
+
+bool inFrame(int8_t num) {
+	return (num >= -1 && num <= 1);
+}
+
+template<typename Key, typename Value>
+bool AVLTree<Key, Value>::isBalanced(Node_ptr node)
+{
+	if (!node) return true;
+	return isBalanced(node->left) && isBalanced(node->right) && inFrame(node->getBFactor(true));
 }
 
 template<typename Key, typename Value>
@@ -204,15 +231,21 @@ Value AVLTree<Key, Value>::find(Key key)
 	return find(root, key);
 }
 
+template<typename Key, typename Value>
+inline bool AVLTree<Key, Value>::isBalanced()
+{
+	return isBalanced(root);
+}
+
 template <typename Key, typename Value>
 class Map {
 private:
-	std::shared_ptr<AVLTree<Key, Value>> tree;
+	AVLTree<Key, Value> tree;
 public:
 	void insert(Key key, Value value);
 	void erase(Key key);
 	Value find(Key key);
-	Map();
+	bool isMyTreeBalanced();
 };
 
 
@@ -220,23 +253,23 @@ public:
 template<typename Key, typename Value>
 void Map<Key, Value>::insert(Key key, Value value)
 {
-	tree->insert(key, value);
+	tree.insert(key, value);
 }
 
 template<typename Key, typename Value>
 void Map<Key, Value>::erase(Key key)
 {
-	tree->remove(key);
+	tree.remove(key);
 }
 
 template<typename Key, typename Value>
 Value Map<Key, Value>::find(Key key)
 {
-	return tree->find(key);
+	return tree.find(key);
 }
 
 template<typename Key, typename Value>
-Map<Key, Value>::Map()
+inline bool Map<Key, Value>::isMyTreeBalanced()
 {
-	this->tree = std::make_shared<AVLTree<Key, Value>>();
+	return tree.isBalanced();
 }

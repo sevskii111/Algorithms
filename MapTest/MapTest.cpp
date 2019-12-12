@@ -25,6 +25,9 @@ int main()
 	}
 	auto end_time = std::chrono::steady_clock::now();
 	auto elapsed_ns_Map = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
+	if (!test.isMyTreeBalanced()) {
+		cout << "Tree is not balanced!" << endl;
+	}
 	/*
 	for (int i = 1; i < len; i += 2) {
 		if (test.find(numbers[i]) != i) {
